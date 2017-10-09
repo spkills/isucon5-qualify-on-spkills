@@ -70,3 +70,16 @@ nginxのrestart
 sudo systemctl restart nginx.service
 ```
 
+#### mysqlのconf変更とdomain sockert対応
+```
+636.9
+{"success"=>617, "redirect"=>199, "failure"=>1, "error"=>0, "exception"=>0}
+```
+
+mysqlのrestart
+```sh
+sudo systemctl restart mysql
+```
+
+`mysql_config --socket`でsocketの場所確認。引数で`/var/run/mysqld/mysqld.sock`を指定してて接続できない罠があった
+

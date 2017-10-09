@@ -693,6 +693,8 @@ func PostFriends(w http.ResponseWriter, r *http.Request) {
 		another := getUserFromAccount(w, anotherAccount)
 		_, err := db.Exec(`INSERT INTO relations (one, another) VALUES (?,?), (?,?)`, user.ID, another.ID, another.ID, user.ID)
 		checkErr(err)
+		key := fmt.Sprintf("friendNum:%d", user.ID)
+		inMem.Delete(key)
 		http.Redirect(w, r, "/friends", http.StatusSeeOther)
 	}
 }

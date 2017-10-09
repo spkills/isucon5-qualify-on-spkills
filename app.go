@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"html/template"
 	"log"
 	"net"
@@ -748,7 +749,24 @@ func main() {
 		ssecret = "beermoris"
 	}
 
-	db, err = sql.Open("mysql", user+":"+password+"@tcp("+host+":"+strconv.Itoa(port)+")/"+dbname+"?loc=Local&parseTime=true")
+	var connectTo string
+	_, err = os.Stat("/var/run/mysqld/mysqld.sock")
+	if err == nil {
+		connectTo = fmt.Sprintf("unix(%s)", "/var/run/mysqld/mysqld.sock")
+	} else {
+		connectTo = fmt.Sprintf("tcp(%s:%d)", host, port)
+	}
+
+	dsn := fmt.Sprintf(
+		"%s:%s@%s/%s?loc=%s&parseTime=%s",
+		user,
+		password,
+		connectTo,
+		dbname,
+		"Local",
+		"true",
+	)
+	db, err = sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatalf("Failed to connect to DB: %s.", err.Error())
 	}

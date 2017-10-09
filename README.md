@@ -52,6 +52,19 @@ sudo systemctl restart isuxi.go
 sudo systemctl status isuxi.go
 ```
 
+### access logメモ
+https://github.com/tkuchiki/alp
+```
+cat access.log | ./alp --max -r
+```
+
+### slow logメモ
+```
+mysql> show variables like 'long_query%';
+mysql> show variables like 'slow_query%';
+$ mysqldumpslow -s at /var/lib/mysql/vagrant-slow.log > /home/isucon/slow.log
+```
+
 ### スコアの更新具合
 #### 初回
 ```

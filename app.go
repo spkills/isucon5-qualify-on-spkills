@@ -124,13 +124,13 @@ func getCurrentUser(w http.ResponseWriter, r *http.Request) *User {
 	return &user
 }
 
-func authenticated(w http.ResponseWriter, r *http.Request) bool {
+func authenticated(w http.ResponseWriter, r *http.Request) *User {
 	user := getCurrentUser(w, r)
 	if user == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return false
+		return nil
 	}
-	return true
+	return user
 }
 
 func getUser(w http.ResponseWriter, userID int) *User {
@@ -294,11 +294,10 @@ func GetLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetIndex(w http.ResponseWriter, r *http.Request) {
-	if !authenticated(w, r) {
+	user := authenticated(w, r)
+	if user == nil {
 		return
 	}
-
-	user := getCurrentUser(w, r)
 
 	prof := Profile{}
 	row := db.QueryRow(`SELECT * FROM profiles WHERE user_id = ?`, user.ID)
@@ -444,7 +443,8 @@ LIMIT 10`, user.ID)
 }
 
 func GetProfile(w http.ResponseWriter, r *http.Request) {
-	if !authenticated(w, r) {
+	user := authenticated(w, r)
+	if user == nil {
 		return
 	}
 
@@ -490,10 +490,10 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostProfile(w http.ResponseWriter, r *http.Request) {
-	if !authenticated(w, r) {
+	user := authenticated(w, r)
+	if user == nil {
 		return
 	}
-	user := getCurrentUser(w, r)
 	account := mux.Vars(r)["account_name"]
 	if account != user.AccountName {
 		checkErr(ErrPermissionDenied)
@@ -513,7 +513,8 @@ WHERE user_id = ?`
 }
 
 func ListEntries(w http.ResponseWriter, r *http.Request) {
-	if !authenticated(w, r) {
+	user := authenticated(w, r)
+	if user == nil {
 		return
 	}
 
@@ -550,9 +551,11 @@ func ListEntries(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetEntry(w http.ResponseWriter, r *http.Request) {
-	if !authenticated(w, r) {
+	user := authenticated(w, r)
+	if user == nil {
 		return
 	}
+
 	entryID := mux.Vars(r)["entry_id"]
 	row := db.QueryRow(`SELECT * FROM entries WHERE id = ?`, entryID)
 	var id, userID, private int
@@ -592,11 +595,11 @@ func GetEntry(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostEntry(w http.ResponseWriter, r *http.Request) {
-	if !authenticated(w, r) {
+	user := authenticated(w, r)
+	if user == nil {
 		return
 	}
 
-	user := getCurrentUser(w, r)
 	title := r.FormValue("title")
 	if title == "" {
 		title = "タイトルなし"
@@ -614,7 +617,8 @@ func PostEntry(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostComment(w http.ResponseWriter, r *http.Request) {
-	if !authenticated(w, r) {
+	user := authenticated(w, r)
+	if user == nil {
 		return
 	}
 
@@ -636,7 +640,6 @@ func PostComment(w http.ResponseWriter, r *http.Request) {
 			checkErr(ErrPermissionDenied)
 		}
 	}
-	user := getCurrentUser(w, r)
 
 	_, err = db.Exec(`INSERT INTO comments (entry_id, user_id, comment) VALUES (?,?,?)`, entry.ID, user.ID, r.FormValue("comment"))
 	checkErr(err)
@@ -644,11 +647,11 @@ func PostComment(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetFootprints(w http.ResponseWriter, r *http.Request) {
-	if !authenticated(w, r) {
+	user := authenticated(w, r)
+	if user == nil {
 		return
 	}
 
-	user := getCurrentUser(w, r)
 	footprints := make([]Footprint, 0, 50)
 	rows, err := db.Query(`SELECT user_id, owner_id, DATE(created_at) AS date, MAX(created_at) as updated
 FROM footprints
@@ -668,11 +671,11 @@ LIMIT 50`, user.ID)
 	render(w, r, http.StatusOK, "footprints.html", struct{ Footprints []Footprint }{footprints})
 }
 func GetFriends(w http.ResponseWriter, r *http.Request) {
-	if !authenticated(w, r) {
+	user := authenticated(w, r)
+	if user == nil {
 		return
 	}
 
-	user := getCurrentUser(w, r)
 	rows, err := db.Query(`SELECT * FROM relations WHERE one = ? OR another = ? ORDER BY created_at DESC`, user.ID, user.ID)
 	if err != sql.ErrNoRows {
 		checkErr(err)
@@ -701,11 +704,11 @@ func GetFriends(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostFriends(w http.ResponseWriter, r *http.Request) {
-	if !authenticated(w, r) {
+	user := authenticated(w, r)
+	if user == nil {
 		return
 	}
 
-	user := getCurrentUser(w, r)
 	anotherAccount := mux.Vars(r)["account_name"]
 	if !isFriendAccount(w, r, anotherAccount) {
 		another := getUserFromAccount(w, anotherAccount)

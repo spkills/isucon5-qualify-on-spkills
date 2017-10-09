@@ -105,3 +105,10 @@ sudo /sbin/sysctl -p
 誤差。
 リクエストをさばけるようになったら生きてくるでしょう。
 
+#### getCurrentUser呼びすぎなんじゃぁ
+```
+654.5
+{"success"=>634, "redirect"=>205, "failure"=>1, "error"=>0, "exception"=>0}
+```
+ごみの修正
+

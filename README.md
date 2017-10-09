@@ -46,10 +46,27 @@ cp -pr ../../isucon5-qualify/webapp/go/templates
 GOOS=linux GOARCH=amd64 go build app.go
 ```
 
+### restart
+```sh
+sudo systemctl restart isuxi.go
+sudo systemctl status isuxi.go
+```
+
 ### スコアの更新具合
-### 初回
+#### 初回
 ```
 504.3
 {"success"=>488, "redirect"=>163, "failure"=>1, "error"=>0, "exception"=>0}
+```
+
+#### nginxのconf変更とdomain sockert対応
+```
+558.5
+{"success"=>541, "redirect"=>175, "failure"=>1, "error"=>0, "exception"=>0}
+```
+
+nginxのrestart
+```sh
+sudo systemctl restart nginx.service
 ```
 

@@ -3,12 +3,9 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"github.com/go-sql-driver/mysql"
-	"github.com/gorilla/context"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -16,6 +13,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-sql-driver/mysql"
+	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 )
 
 var (
@@ -779,8 +781,18 @@ func main() {
 
 	r.HandleFunc("/initialize", myHandler(GetInitialize))
 	r.HandleFunc("/", myHandler(GetIndex))
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("../static")))
-	log.Fatal(http.ListenAndServe(":8080", r))
+
+	sock := "/var/run/nginx.sock"
+	listener, err := net.Listen("unix", sock)
+	if err != nil {
+		log.Fatalf("listen error: %v", err)
+	}
+	if err = os.Chmod(sock, os.FileMode(int(0777))); err != nil {
+		log.Fatalf("chmod error: %v", err)
+	}
+	if err := http.Serve(listener, r); err != nil {
+		log.Fatalf("serve error: %v", err)
+	}
 }
 
 func checkErr(err error) {

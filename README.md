@@ -83,3 +83,12 @@ sudo systemctl restart mysql
 
 `mysql_config --socket`でsocketの場所確認。引数で`/var/run/mysqld/mysqld.sock`を指定してて接続できない罠があった
 
+#### sysctlの設定変更
+sudo /sbin/sysctl -p
+```
+632.1
+{"success"=>613, "redirect"=>191, "failure"=>1, "error"=>0, "exception"=>0}
+```
+誤差。
+リクエストをさばけるようになったら生きてくるでしょう。
+

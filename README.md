@@ -112,3 +112,9 @@ sudo /sbin/sysctl -p
 ```
 ごみの修正
 
+#### topのfriend listは人数だけでよかった
+```
+721.9
+{"success"=>700, "redirect"=>219, "failure"=>1, "error"=>0, "exception"=>0}
+```
+

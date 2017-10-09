@@ -68,10 +68,12 @@ type Friend struct {
 }
 
 type Footprint struct {
-	UserID    int
-	OwnerID   int
-	CreatedAt time.Time
-	Updated   time.Time
+	UserID      int
+	OwnerID     int
+	CreatedAt   time.Time
+	Updated     time.Time
+	AccountName string
+	NickName    string
 }
 
 var prefs = []string{"未入力",
@@ -390,10 +392,14 @@ LIMIT 10`, user.ID)
 
 	friendNum := getFriendNum(user.ID)
 
-	rows, err = db.Query(`SELECT user_id, owner_id, DATE(created_at) AS date, MAX(created_at) AS updated
+	rows, err = db.Query(`SELECT 
+footprints.user_id, footprints.owner_id, DATE(footprints.created_at) AS date, MAX(footprints.created_at) AS updated, users.account_name, users.nick_name
 FROM footprints
-WHERE user_id = ?
-GROUP BY user_id, owner_id, DATE(created_at)
+INNER JOIN users ON (
+	footprints.owner_id = users.id
+)
+WHERE footprints.user_id = ?
+GROUP BY footprints.user_id, footprints.owner_id, DATE(footprints.created_at)
 ORDER BY updated DESC
 LIMIT 10`, user.ID)
 	if err != sql.ErrNoRows {
@@ -402,7 +408,7 @@ LIMIT 10`, user.ID)
 	footprints := make([]Footprint, 0, 10)
 	for rows.Next() {
 		fp := Footprint{}
-		checkErr(rows.Scan(&fp.UserID, &fp.OwnerID, &fp.CreatedAt, &fp.Updated))
+		checkErr(rows.Scan(&fp.UserID, &fp.OwnerID, &fp.CreatedAt, &fp.Updated, &fp.AccountName, &fp.NickName))
 		footprints = append(footprints, fp)
 	}
 	rows.Close()
@@ -632,10 +638,14 @@ func GetFootprints(w http.ResponseWriter, r *http.Request) {
 	}
 
 	footprints := make([]Footprint, 0, 50)
-	rows, err := db.Query(`SELECT user_id, owner_id, DATE(created_at) AS date, MAX(created_at) as updated
+	rows, err := db.Query(`SELECT 
+footprints.user_id, footprints.owner_id, DATE(footprints.created_at) AS date, MAX(footprints.created_at) AS updated, users.account_name, users.nick_name
 FROM footprints
-WHERE user_id = ?
-GROUP BY user_id, owner_id, DATE(created_at)
+INNER JOIN users ON (
+	footprints.owner_id = users.id
+)
+WHERE footprints.user_id = ?
+GROUP BY footprints.user_id, footprints.owner_id, DATE(footprints.created_at)
 ORDER BY updated DESC
 LIMIT 50`, user.ID)
 	if err != sql.ErrNoRows {
@@ -643,7 +653,7 @@ LIMIT 50`, user.ID)
 	}
 	for rows.Next() {
 		fp := Footprint{}
-		checkErr(rows.Scan(&fp.UserID, &fp.OwnerID, &fp.CreatedAt, &fp.Updated))
+		checkErr(rows.Scan(&fp.UserID, &fp.OwnerID, &fp.CreatedAt, &fp.Updated, &fp.AccountName, &fp.NickName))
 		footprints = append(footprints, fp)
 	}
 	rows.Close()

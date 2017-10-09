@@ -123,3 +123,10 @@ sudo /sbin/sysctl -p
 845.9
 {"success"=>821, "redirect"=>249, "failure"=>1, "error"=>0, "exception"=>0}
 ```
+
+#### 足跡のテンプレからgetUser潰す
+```
+845.9
+{"success"=>821, "redirect"=>249, "failure"=>1, "error"=>0, "exception"=>0}
+```
+

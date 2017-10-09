@@ -118,3 +118,8 @@ sudo /sbin/sysctl -p
 {"success"=>700, "redirect"=>219, "failure"=>1, "error"=>0, "exception"=>0}
 ```
 
+#### 友達の数はcacheする
+```
+845.9
+{"success"=>821, "redirect"=>249, "failure"=>1, "error"=>0, "exception"=>0}
+```

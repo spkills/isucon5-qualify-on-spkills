@@ -19,11 +19,13 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	cache "github.com/patrickmn/go-cache"
 )
 
 var (
 	db    *sql.DB
 	store *sessions.CookieStore
+	inMem *cache.Cache
 )
 
 type User struct {
@@ -386,10 +388,7 @@ LIMIT 10`, user.ID)
 	}
 	rows.Close()
 
-	frends := db.QueryRow(`SELECT COUNT(*) FROM relations WHERE one = ?`, user.ID)
-	friendNum := new(int)
-	err = frends.Scan(friendNum)
-	checkErr(err)
+	friendNum := getFriendNum(user.ID)
 
 	rows, err = db.Query(`SELECT user_id, owner_id, DATE(created_at) AS date, MAX(created_at) AS updated
 FROM footprints
@@ -418,7 +417,7 @@ LIMIT 10`, user.ID)
 		FriendNum         int
 		Footprints        []Footprint
 	}{
-		*user, prof, entries, commentsForMe, entriesOfFriends, commentsOfFriends, *friendNum, footprints,
+		*user, prof, entries, commentsForMe, entriesOfFriends, commentsOfFriends, friendNum, footprints,
 	})
 }
 
@@ -755,6 +754,8 @@ func main() {
 	}
 	defer db.Close()
 
+	inMem = cache.New(5*time.Minute, 10*time.Minute)
+
 	store = sessions.NewCookieStore([]byte(ssecret))
 
 	r := mux.NewRouter()
@@ -800,4 +801,19 @@ func checkErr(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func getFriendNum(userID int) int {
+	key := fmt.Sprintf("friendNum:%d", userID)
+	var friendNum int
+	val, found := inMem.Get(key)
+	if found {
+		friendNum = val.(int)
+	} else {
+		frends := db.QueryRow(`SELECT COUNT(*) FROM relations WHERE one = ?`, userID)
+		err := frends.Scan(&friendNum)
+		checkErr(err)
+		inMem.Set(key, friendNum, 10*time.Second)
+	}
+	return friendNum
 }

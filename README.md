@@ -159,3 +159,9 @@ sudo /sbin/sysctl -p
 {"success"=>7230, "redirect"=>1985, "failure"=>1, "error"=>0, "exception"=>0}
 ```
 
+#### topのcommentからget_userを廃止
+```
+7285.4
+{"success"=>7092, "redirect"=>1934, "failure"=>1, "error"=>0, "exception"=>0}
+```
+

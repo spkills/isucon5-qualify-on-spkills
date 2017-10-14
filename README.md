@@ -59,9 +59,11 @@ cat access.log | ./alp --max -r
 ```
 
 ### slow logメモ
+基本slow_logをONにしといて、最後にOFF
 ```
 mysql> show variables like 'long_query%';
 mysql> show variables like 'slow_query%';
+mysql> set global slow_query_log=1;
 $ mysqldumpslow -s at /var/lib/mysql/vagrant-slow.log > /home/isucon/slow.log
 ```
 

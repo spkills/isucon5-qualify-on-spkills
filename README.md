@@ -154,9 +154,3 @@ sudo /sbin/sysctl -p
 {"success"=>7230, "redirect"=>1985, "failure"=>1, "error"=>0, "exception"=>0}
 ```
 
-#### 友達のコメント1000件ひかない
-```
-8273.4
-{"success"=>8053, "redirect"=>2204, "failure"=>1, "error"=>0, "exception"=>0}
-```
-

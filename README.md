@@ -171,3 +171,9 @@ sudo /sbin/sysctl -p
 {"success"=>7524, "redirect"=>2067, "failure"=>1, "error"=>0, "exception"=>0}
 ```
 
+#### friendsからget_userを廃止
+```
+8756.3
+{"success"=>8523, "redirect"=>2333, "failure"=>1, "error"=>0, "exception"=>0}
+```
+

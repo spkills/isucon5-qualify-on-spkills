@@ -63,8 +63,10 @@ type Comment struct {
 }
 
 type Friend struct {
-	ID        int
-	CreatedAt time.Time
+	ID          int
+	CreatedAt   time.Time
+	AccountName string
+	NickName    string
 }
 
 type Footprint struct {
@@ -684,24 +686,37 @@ func GetFriends(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query(`SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC`, user.ID)
+	rows, err := db.Query(`
+SELECT r.id, r.one, r.another, r.created_at, u.account_name, u.nick_name
+FROM relations r
+INNER JOIN users u ON (
+	r.another = u.id
+)
+WHERE r.one = ?
+ORDER BY r.created_at DESC`, user.ID)
 	if err != sql.ErrNoRows {
 		checkErr(err)
 	}
-	friendsMap := make(map[int]time.Time)
+	friendsMap := make(map[int]Friend)
 	for rows.Next() {
 		var id, one, another int
 		var createdAt time.Time
-		checkErr(rows.Scan(&id, &one, &another, &createdAt))
+		var accountName, nickName string
+		checkErr(rows.Scan(&id, &one, &another, &createdAt, &accountName, &nickName))
 		friendID := another
 		if _, ok := friendsMap[friendID]; !ok {
-			friendsMap[friendID] = createdAt
+			friendsMap[friendID] = Friend{
+				ID:          another,
+				CreatedAt:   createdAt,
+				AccountName: accountName,
+				NickName:    nickName,
+			}
 		}
 	}
 	rows.Close()
 	friends := make([]Friend, 0, len(friendsMap))
-	for key, val := range friendsMap {
-		friends = append(friends, Friend{key, val})
+	for _, val := range friendsMap {
+		friends = append(friends, val)
 	}
 	render(w, r, http.StatusOK, "friends.html", struct{ Friends []Friend }{friends})
 }

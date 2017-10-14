@@ -64,7 +64,11 @@ cat access.log | ./alp --max -r
 mysql> show variables like 'long_query%';
 mysql> show variables like 'slow_query%';
 mysql> set global slow_query_log=1;
+
+# 実行時間が遅い順
 $ mysqldumpslow -s at /var/lib/mysql/vagrant-slow.log > /home/isucon/slow.log
+# 実行回数が多い順
+$ mysqldumpslow -s c /var/lib/mysql/vagrant-slow.log > /home/isucon/slow.log
 ```
 
 ### スコアの更新具合

@@ -130,3 +130,9 @@ sudo /sbin/sysctl -p
 {"success"=>1355, "redirect"=>393, "failure"=>1, "error"=>0, "exception"=>0}
 ```
 
+#### GetFriendのSQLも改善
+```
+1729.3
+{"success"=>1681, "redirect"=>483, "failure"=>1, "error"=>0, "exception"=>0}
+```
+

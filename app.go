@@ -343,6 +343,7 @@ LIMIT 10`, user.ID)
 	if err != sql.ErrNoRows {
 		checkErr(err)
 	}
+	var ids []string
 	friendsMap := make(map[int]time.Time)
 	for rows.Next() {
 		var id, one, another int
@@ -352,16 +353,13 @@ LIMIT 10`, user.ID)
 		if _, ok := friendsMap[friendID]; !ok {
 			friendsMap[friendID] = createdAt
 		}
+		ids = append(ids, fmt.Sprintf("%d", friendID))
 	}
-	//friends := make([]Friend, 0, len(friendsMap))
-	//for key, val := range friendsMap {
-	//	friends = append(friends, Friend{key, val})
-	//}
 	friendNum := len(friendsMap)
-
 	rows.Close()
 
-	rows, err = db.Query(`SELECT * FROM entries ORDER BY created_at DESC LIMIT 1000`)
+	sqlstr := fmt.Sprintf("SELECT * FROM entries WHERE user_id IN (%s) ORDER BY created_at DESC LIMIT 10", strings.Join(ids, ","))
+	rows, err = db.Query(sqlstr)
 	if err != sql.ErrNoRows {
 		checkErr(err)
 	}
@@ -371,14 +369,7 @@ LIMIT 10`, user.ID)
 		var body string
 		var createdAt time.Time
 		checkErr(rows.Scan(&id, &userID, &private, &body, &createdAt))
-		_, ok := friendsMap[userID]
-		if !ok {
-			continue
-		}
 		entriesOfFriends = append(entriesOfFriends, Entry{id, userID, private == 1, strings.SplitN(body, "\n", 2)[0], strings.SplitN(body, "\n", 2)[1], createdAt})
-		if len(entriesOfFriends) >= 10 {
-			break
-		}
 	}
 	rows.Close()
 

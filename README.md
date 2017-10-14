@@ -136,3 +136,7 @@ sudo /sbin/sysctl -p
 {"success"=>1681, "redirect"=>483, "failure"=>1, "error"=>0, "exception"=>0}
 ```
 
+#### 友達のエントリを1000件ひかない
+1884.1
+{"success"=>1833, "redirect"=>511, "failure"=>1, "error"=>0, "exception"=>0}
+

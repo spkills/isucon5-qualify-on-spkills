@@ -112,6 +112,7 @@ sudo /sbin/sysctl -p
 ```
 ごみの修正
 
+<<<<<<< HEAD
 #### topのfriend listは人数だけでよかった
 ```
 721.9

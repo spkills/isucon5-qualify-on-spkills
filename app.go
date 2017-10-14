@@ -19,13 +19,11 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	cache "github.com/patrickmn/go-cache"
 )
 
 var (
 	db    *sql.DB
 	store *sessions.CookieStore
-	inMem *cache.Cache
 )
 
 type User struct {
@@ -390,7 +388,30 @@ LIMIT 10`, user.ID)
 	}
 	rows.Close()
 
-	friendNum := getFriendNum(user.ID)
+	rows, err = db.Query(`SELECT * FROM relations WHERE one = ? OR another = ? ORDER BY created_at DESC`, user.ID, user.ID)
+	if err != sql.ErrNoRows {
+		checkErr(err)
+	}
+	friendsMap := make(map[int]time.Time)
+	for rows.Next() {
+		var id, one, another int
+		var createdAt time.Time
+		checkErr(rows.Scan(&id, &one, &another, &createdAt))
+		var friendID int
+		if one == user.ID {
+			friendID = another
+		} else {
+			friendID = one
+		}
+		if _, ok := friendsMap[friendID]; !ok {
+			friendsMap[friendID] = createdAt
+		}
+	}
+	friends := make([]Friend, 0, len(friendsMap))
+	for key, val := range friendsMap {
+		friends = append(friends, Friend{key, val})
+	}
+	rows.Close()
 
 	rows, err = db.Query(`SELECT 
 footprints.user_id, footprints.owner_id, DATE(footprints.created_at) AS date, MAX(footprints.created_at) AS updated, users.account_name, users.nick_name
@@ -420,10 +441,10 @@ LIMIT 10`, user.ID)
 		CommentsForMe     []Comment
 		EntriesOfFriends  []Entry
 		CommentsOfFriends []Comment
-		FriendNum         int
+		Friends           []Friend
 		Footprints        []Footprint
 	}{
-		*user, prof, entries, commentsForMe, entriesOfFriends, commentsOfFriends, friendNum, footprints,
+		*user, prof, entries, commentsForMe, entriesOfFriends, commentsOfFriends, friends, footprints,
 	})
 }
 
@@ -703,8 +724,6 @@ func PostFriends(w http.ResponseWriter, r *http.Request) {
 		another := getUserFromAccount(w, anotherAccount)
 		_, err := db.Exec(`INSERT INTO relations (one, another) VALUES (?,?), (?,?)`, user.ID, another.ID, another.ID, user.ID)
 		checkErr(err)
-		key := fmt.Sprintf("friendNum:%d", user.ID)
-		inMem.Delete(key)
 		http.Redirect(w, r, "/friends", http.StatusSeeOther)
 	}
 }
@@ -766,8 +785,6 @@ func main() {
 	}
 	defer db.Close()
 
-	inMem = cache.New(5*time.Minute, 10*time.Minute)
-
 	store = sessions.NewCookieStore([]byte(ssecret))
 
 	r := mux.NewRouter()
@@ -813,19 +830,4 @@ func checkErr(err error) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func getFriendNum(userID int) int {
-	key := fmt.Sprintf("friendNum:%d", userID)
-	var friendNum int
-	val, found := inMem.Get(key)
-	if found {
-		friendNum = val.(int)
-	} else {
-		frends := db.QueryRow(`SELECT COUNT(*) FROM relations WHERE one = ?`, userID)
-		err := frends.Scan(&friendNum)
-		checkErr(err)
-		inMem.Set(key, friendNum, 10*time.Second)
-	}
-	return friendNum
 }

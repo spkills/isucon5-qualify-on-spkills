@@ -339,6 +339,28 @@ LIMIT 10`, user.ID)
 	}
 	rows.Close()
 
+	rows, err = db.Query(`SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC`, user.ID)
+	if err != sql.ErrNoRows {
+		checkErr(err)
+	}
+	friendsMap := make(map[int]time.Time)
+	for rows.Next() {
+		var id, one, another int
+		var createdAt time.Time
+		checkErr(rows.Scan(&id, &one, &another, &createdAt))
+		friendID := another
+		if _, ok := friendsMap[friendID]; !ok {
+			friendsMap[friendID] = createdAt
+		}
+	}
+	//friends := make([]Friend, 0, len(friendsMap))
+	//for key, val := range friendsMap {
+	//	friends = append(friends, Friend{key, val})
+	//}
+	friendNum := len(friendsMap)
+
+	rows.Close()
+
 	rows, err = db.Query(`SELECT * FROM entries ORDER BY created_at DESC LIMIT 1000`)
 	if err != sql.ErrNoRows {
 		checkErr(err)
@@ -388,26 +410,6 @@ LIMIT 10`, user.ID)
 	}
 	rows.Close()
 
-	rows, err = db.Query(`SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC`, user.ID)
-	if err != sql.ErrNoRows {
-		checkErr(err)
-	}
-	friendsMap := make(map[int]time.Time)
-	for rows.Next() {
-		var id, one, another int
-		var createdAt time.Time
-		checkErr(rows.Scan(&id, &one, &another, &createdAt))
-		friendID := another
-		if _, ok := friendsMap[friendID]; !ok {
-			friendsMap[friendID] = createdAt
-		}
-	}
-	friends := make([]Friend, 0, len(friendsMap))
-	for key, val := range friendsMap {
-		friends = append(friends, Friend{key, val})
-	}
-	rows.Close()
-
 	rows, err = db.Query(`SELECT 
 footprints.user_id, footprints.owner_id, DATE(footprints.created_at) AS date, MAX(footprints.created_at) AS updated, users.account_name, users.nick_name
 FROM footprints
@@ -436,10 +438,10 @@ LIMIT 10`, user.ID)
 		CommentsForMe     []Comment
 		EntriesOfFriends  []Entry
 		CommentsOfFriends []Comment
-		Friends           []Friend
+		FriendNum         int
 		Footprints        []Footprint
 	}{
-		*user, prof, entries, commentsForMe, entriesOfFriends, commentsOfFriends, friends, footprints,
+		*user, prof, entries, commentsForMe, entriesOfFriends, commentsOfFriends, friendNum, footprints,
 	})
 }
 

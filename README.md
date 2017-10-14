@@ -59,9 +59,11 @@ cat access.log | ./alp --max -r
 ```
 
 ### slow logメモ
+基本slow_logをONにしといて、最後にOFF
 ```
 mysql> show variables like 'long_query%';
 mysql> show variables like 'slow_query%';
+mysql> set global slow_query_log=1;
 $ mysqldumpslow -s at /var/lib/mysql/vagrant-slow.log > /home/isucon/slow.log
 ```
 
@@ -135,4 +137,8 @@ sudo /sbin/sysctl -p
 1729.3
 {"success"=>1681, "redirect"=>483, "failure"=>1, "error"=>0, "exception"=>0}
 ```
+
+#### 友達のエントリを1000件ひかない
+1884.1
+{"success"=>1833, "redirect"=>511, "failure"=>1, "error"=>0, "exception"=>0}
 

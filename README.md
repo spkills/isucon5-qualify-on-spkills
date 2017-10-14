@@ -112,22 +112,21 @@ sudo /sbin/sysctl -p
 ```
 ごみの修正
 
-<<<<<<< HEAD
-#### topのfriend listは人数だけでよかった
-```
-721.9
-{"success"=>700, "redirect"=>219, "failure"=>1, "error"=>0, "exception"=>0}
-```
-
-#### 友達の数はcacheする
-```
-845.9
-{"success"=>821, "redirect"=>249, "failure"=>1, "error"=>0, "exception"=>0}
-```
-
 #### 足跡のテンプレからgetUser潰す
 ```
 845.9
 {"success"=>821, "redirect"=>249, "failure"=>1, "error"=>0, "exception"=>0}
+```
+
+#### relationにindex追加してSQL改善
+```
+816.3
+{"success"=>792, "redirect"=>243, "failure"=>1, "error"=>0, "exception"=>0}
+```
+
+#### isFriendを呼ばないんじゃ
+```
+1394.3
+{"success"=>1355, "redirect"=>393, "failure"=>1, "error"=>0, "exception"=>0}
 ```
 

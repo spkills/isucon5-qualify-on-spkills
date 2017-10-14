@@ -339,6 +339,28 @@ LIMIT 10`, user.ID)
 	}
 	rows.Close()
 
+	rows, err = db.Query(`SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC`, user.ID)
+	if err != sql.ErrNoRows {
+		checkErr(err)
+	}
+	friendsMap := make(map[int]time.Time)
+	for rows.Next() {
+		var id, one, another int
+		var createdAt time.Time
+		checkErr(rows.Scan(&id, &one, &another, &createdAt))
+		friendID := another
+		if _, ok := friendsMap[friendID]; !ok {
+			friendsMap[friendID] = createdAt
+		}
+	}
+	//friends := make([]Friend, 0, len(friendsMap))
+	//for key, val := range friendsMap {
+	//	friends = append(friends, Friend{key, val})
+	//}
+	friendNum := len(friendsMap)
+
+	rows.Close()
+
 	rows, err = db.Query(`SELECT * FROM entries ORDER BY created_at DESC LIMIT 1000`)
 	if err != sql.ErrNoRows {
 		checkErr(err)
@@ -349,7 +371,8 @@ LIMIT 10`, user.ID)
 		var body string
 		var createdAt time.Time
 		checkErr(rows.Scan(&id, &userID, &private, &body, &createdAt))
-		if !isFriend(w, r, userID) {
+		_, ok := friendsMap[userID]
+		if !ok {
 			continue
 		}
 		entriesOfFriends = append(entriesOfFriends, Entry{id, userID, private == 1, strings.SplitN(body, "\n", 2)[0], strings.SplitN(body, "\n", 2)[1], createdAt})
@@ -367,7 +390,8 @@ LIMIT 10`, user.ID)
 	for rows.Next() {
 		c := Comment{}
 		checkErr(rows.Scan(&c.ID, &c.EntryID, &c.UserID, &c.Comment, &c.CreatedAt))
-		if !isFriend(w, r, c.UserID) {
+		_, ok := friendsMap[c.UserID]
+		if !ok {
 			continue
 		}
 		row := db.QueryRow(`SELECT * FROM entries WHERE id = ?`, c.EntryID)
@@ -385,31 +409,6 @@ LIMIT 10`, user.ID)
 		if len(commentsOfFriends) >= 10 {
 			break
 		}
-	}
-	rows.Close()
-
-	rows, err = db.Query(`SELECT * FROM relations WHERE one = ? OR another = ? ORDER BY created_at DESC`, user.ID, user.ID)
-	if err != sql.ErrNoRows {
-		checkErr(err)
-	}
-	friendsMap := make(map[int]time.Time)
-	for rows.Next() {
-		var id, one, another int
-		var createdAt time.Time
-		checkErr(rows.Scan(&id, &one, &another, &createdAt))
-		var friendID int
-		if one == user.ID {
-			friendID = another
-		} else {
-			friendID = one
-		}
-		if _, ok := friendsMap[friendID]; !ok {
-			friendsMap[friendID] = createdAt
-		}
-	}
-	friends := make([]Friend, 0, len(friendsMap))
-	for key, val := range friendsMap {
-		friends = append(friends, Friend{key, val})
 	}
 	rows.Close()
 
@@ -441,10 +440,10 @@ LIMIT 10`, user.ID)
 		CommentsForMe     []Comment
 		EntriesOfFriends  []Entry
 		CommentsOfFriends []Comment
-		Friends           []Friend
+		FriendNum         int
 		Footprints        []Footprint
 	}{
-		*user, prof, entries, commentsForMe, entriesOfFriends, commentsOfFriends, friends, footprints,
+		*user, prof, entries, commentsForMe, entriesOfFriends, commentsOfFriends, friendNum, footprints,
 	})
 }
 

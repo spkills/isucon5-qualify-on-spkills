@@ -124,3 +124,9 @@ sudo /sbin/sysctl -p
 {"success"=>792, "redirect"=>243, "failure"=>1, "error"=>0, "exception"=>0}
 ```
 
+#### isFriendを呼ばないんじゃ
+```
+1394.3
+{"success"=>1355, "redirect"=>393, "failure"=>1, "error"=>0, "exception"=>0}
+```
+

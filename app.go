@@ -371,7 +371,8 @@ LIMIT 10`, user.ID)
 		var body string
 		var createdAt time.Time
 		checkErr(rows.Scan(&id, &userID, &private, &body, &createdAt))
-		if !isFriend(w, r, userID) {
+		_, ok := friendsMap[userID]
+		if !ok {
 			continue
 		}
 		entriesOfFriends = append(entriesOfFriends, Entry{id, userID, private == 1, strings.SplitN(body, "\n", 2)[0], strings.SplitN(body, "\n", 2)[1], createdAt})
@@ -389,7 +390,8 @@ LIMIT 10`, user.ID)
 	for rows.Next() {
 		c := Comment{}
 		checkErr(rows.Scan(&c.ID, &c.EntryID, &c.UserID, &c.Comment, &c.CreatedAt))
-		if !isFriend(w, r, c.UserID) {
+		_, ok := friendsMap[c.UserID]
+		if !ok {
 			continue
 		}
 		row := db.QueryRow(`SELECT * FROM entries WHERE id = ?`, c.EntryID)

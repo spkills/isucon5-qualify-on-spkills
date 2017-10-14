@@ -153,3 +153,9 @@ sudo /sbin/sysctl -p
 {"success"=>7230, "redirect"=>1985, "failure"=>1, "error"=>0, "exception"=>0}
 ```
 
+#### topはbodyもってこない
+```
+7428.5
+{"success"=>7230, "redirect"=>1985, "failure"=>1, "error"=>0, "exception"=>0}
+```
+

@@ -308,17 +308,17 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
 		checkErr(err)
 	}
 
-	rows, err := db.Query(`SELECT * FROM entries WHERE user_id = ? ORDER BY created_at LIMIT 5`, user.ID)
+	rows, err := db.Query(`SELECT id, user_id, private, SUBSTRING_INDEX(body, '\n', 1) AS title, created_at FROM entries WHERE user_id = ? ORDER BY created_at LIMIT 5`, user.ID)
 	if err != sql.ErrNoRows {
 		checkErr(err)
 	}
 	entries := make([]Entry, 0, 5)
 	for rows.Next() {
 		var id, userID, private int
-		var body string
+		var title string
 		var createdAt time.Time
-		checkErr(rows.Scan(&id, &userID, &private, &body, &createdAt))
-		entries = append(entries, Entry{id, userID, private == 1, strings.SplitN(body, "\n", 2)[0], strings.SplitN(body, "\n", 2)[1], createdAt})
+		checkErr(rows.Scan(&id, &userID, &private, &title, &createdAt))
+		entries = append(entries, Entry{id, userID, private == 1, title, "", createdAt})
 	}
 	rows.Close()
 
@@ -358,7 +358,7 @@ LIMIT 10`, user.ID)
 	friendNum := len(friendsMap)
 	rows.Close()
 
-	sqlstr := fmt.Sprintf("SELECT * FROM entries WHERE user_id IN (%s) ORDER BY created_at DESC LIMIT 10", strings.Join(ids, ","))
+	sqlstr := fmt.Sprintf("SELECT id, user_id, private, SUBSTRING_INDEX(body, '\n', 1) AS title, created_at FROM entries WHERE user_id IN (%s) ORDER BY created_at DESC LIMIT 10", strings.Join(ids, ","))
 	rows, err = db.Query(sqlstr)
 	if err != sql.ErrNoRows {
 		checkErr(err)
@@ -366,10 +366,10 @@ LIMIT 10`, user.ID)
 	entriesOfFriends := make([]Entry, 0, 10)
 	for rows.Next() {
 		var id, userID, private int
-		var body string
+		var title string
 		var createdAt time.Time
-		checkErr(rows.Scan(&id, &userID, &private, &body, &createdAt))
-		entriesOfFriends = append(entriesOfFriends, Entry{id, userID, private == 1, strings.SplitN(body, "\n", 2)[0], strings.SplitN(body, "\n", 2)[1], createdAt})
+		checkErr(rows.Scan(&id, &userID, &private, &title, &createdAt))
+		entriesOfFriends = append(entriesOfFriends, Entry{id, userID, private == 1, title, "", createdAt})
 	}
 	rows.Close()
 
@@ -385,12 +385,12 @@ LIMIT 10`, user.ID)
 		if !ok {
 			continue
 		}
-		row := db.QueryRow(`SELECT * FROM entries WHERE id = ?`, c.EntryID)
+		row := db.QueryRow(`SELECT id, user_id, private, SUBSTRING_INDEX(body, '\n', 1) AS title, created_at FROM entries WHERE id = ?`, c.EntryID)
 		var id, userID, private int
-		var body string
+		var title string
 		var createdAt time.Time
-		checkErr(row.Scan(&id, &userID, &private, &body, &createdAt))
-		entry := Entry{id, userID, private == 1, strings.SplitN(body, "\n", 2)[0], strings.SplitN(body, "\n", 2)[1], createdAt}
+		checkErr(row.Scan(&id, &userID, &private, &title, &createdAt))
+		entry := Entry{id, userID, private == 1, title, "", createdAt}
 		if entry.Private {
 			if !permitted(w, r, entry.UserID) {
 				continue

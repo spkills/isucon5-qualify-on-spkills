@@ -373,7 +373,8 @@ LIMIT 10`, user.ID)
 	}
 	rows.Close()
 
-	rows, err = db.Query(`SELECT * FROM comments ORDER BY created_at DESC LIMIT 1000`)
+	sqlstr = fmt.Sprintf("SELECT * FROM comments WHERE user_id IN (%s) ORDER BY created_at DESC LIMIT 10", strings.Join(ids, ","))
+	rows, err = db.Query(sqlstr)
 	if err != sql.ErrNoRows {
 		checkErr(err)
 	}
@@ -381,10 +382,6 @@ LIMIT 10`, user.ID)
 	for rows.Next() {
 		c := Comment{}
 		checkErr(rows.Scan(&c.ID, &c.EntryID, &c.UserID, &c.Comment, &c.CreatedAt))
-		_, ok := friendsMap[c.UserID]
-		if !ok {
-			continue
-		}
 		row := db.QueryRow(`SELECT * FROM entries WHERE id = ?`, c.EntryID)
 		var id, userID, private int
 		var body string

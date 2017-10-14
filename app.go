@@ -53,16 +53,20 @@ type Entry struct {
 }
 
 type Comment struct {
-	ID        int
-	EntryID   int
-	UserID    int
-	Comment   string
-	CreatedAt time.Time
+	ID          int
+	EntryID     int
+	UserID      int
+	Comment     string
+	CreatedAt   time.Time
+	AccountName string
+	NickName    string
 }
 
 type Friend struct {
-	ID        int
-	CreatedAt time.Time
+	ID          int
+	CreatedAt   time.Time
+	AccountName string
+	NickName    string
 }
 
 type Footprint struct {
@@ -322,9 +326,11 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	rows.Close()
 
-	rows, err = db.Query(`SELECT c.id AS id, c.entry_id AS entry_id, c.user_id AS user_id, c.comment AS comment, c.created_at AS created_at
+	rows, err = db.Query(`
+SELECT c.id AS id, c.entry_id AS entry_id, c.user_id AS user_id, c.comment AS comment, c.created_at AS created_at, cu.account_name, cu.nick_name
 FROM comments c
 JOIN entries e ON c.entry_id = e.id
+JOIN users cu ON c.user_id = cu.id
 WHERE e.user_id = ?
 ORDER BY c.created_at DESC
 LIMIT 10`, user.ID)
@@ -334,7 +340,7 @@ LIMIT 10`, user.ID)
 	commentsForMe := make([]Comment, 0, 10)
 	for rows.Next() {
 		c := Comment{}
-		checkErr(rows.Scan(&c.ID, &c.EntryID, &c.UserID, &c.Comment, &c.CreatedAt))
+		checkErr(rows.Scan(&c.ID, &c.EntryID, &c.UserID, &c.Comment, &c.CreatedAt, &c.AccountName, &c.NickName))
 		commentsForMe = append(commentsForMe, c)
 	}
 	rows.Close()
@@ -569,14 +575,18 @@ func GetEntry(w http.ResponseWriter, r *http.Request) {
 			checkErr(ErrPermissionDenied)
 		}
 	}
-	rows, err := db.Query(`SELECT * FROM comments WHERE entry_id = ?`, entry.ID)
+	rows, err := db.Query(`
+SELECT c.id, c.entry_id, c.user_id, c.comment, c.created_at, cu.account_name, cu.nick_name
+FROM comments c
+JOIN users cu ON c.user_id = cu.id
+WHERE entry_id = ?`, entry.ID)
 	if err != sql.ErrNoRows {
 		checkErr(err)
 	}
 	comments := make([]Comment, 0, 10)
 	for rows.Next() {
 		c := Comment{}
-		checkErr(rows.Scan(&c.ID, &c.EntryID, &c.UserID, &c.Comment, &c.CreatedAt))
+		checkErr(rows.Scan(&c.ID, &c.EntryID, &c.UserID, &c.Comment, &c.CreatedAt, &c.AccountName, &c.NickName))
 		comments = append(comments, c)
 	}
 	rows.Close()
@@ -676,24 +686,37 @@ func GetFriends(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query(`SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC`, user.ID)
+	rows, err := db.Query(`
+SELECT r.id, r.one, r.another, r.created_at, u.account_name, u.nick_name
+FROM relations r
+INNER JOIN users u ON (
+	r.another = u.id
+)
+WHERE r.one = ?
+ORDER BY r.created_at DESC`, user.ID)
 	if err != sql.ErrNoRows {
 		checkErr(err)
 	}
-	friendsMap := make(map[int]time.Time)
+	friendsMap := make(map[int]Friend)
 	for rows.Next() {
 		var id, one, another int
 		var createdAt time.Time
-		checkErr(rows.Scan(&id, &one, &another, &createdAt))
+		var accountName, nickName string
+		checkErr(rows.Scan(&id, &one, &another, &createdAt, &accountName, &nickName))
 		friendID := another
 		if _, ok := friendsMap[friendID]; !ok {
-			friendsMap[friendID] = createdAt
+			friendsMap[friendID] = Friend{
+				ID:          another,
+				CreatedAt:   createdAt,
+				AccountName: accountName,
+				NickName:    nickName,
+			}
 		}
 	}
 	rows.Close()
 	friends := make([]Friend, 0, len(friendsMap))
-	for key, val := range friendsMap {
-		friends = append(friends, Friend{key, val})
+	for _, val := range friendsMap {
+		friends = append(friends, val)
 	}
 	render(w, r, http.StatusOK, "friends.html", struct{ Friends []Friend }{friends})
 }

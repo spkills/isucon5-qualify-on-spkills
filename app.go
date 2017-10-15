@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis"
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -22,8 +23,9 @@ import (
 )
 
 var (
-	db    *sql.DB
-	store *sessions.CookieStore
+	db          *sql.DB
+	store       *sessions.CookieStore
+	redisClient *redis.Client
 )
 
 type User struct {
@@ -795,6 +797,8 @@ func main() {
 
 	store = sessions.NewCookieStore([]byte(ssecret))
 
+	initRedis()
+
 	r := mux.NewRouter()
 
 	l := r.Path("/login").Subrouter()
@@ -837,5 +841,31 @@ func main() {
 func checkErr(err error) {
 	if err != nil {
 		panic(err)
+	}
+}
+
+func initRedis() {
+	var addr string
+	var network string
+	socketFile := "/tmp/redis.sock"
+	_, err := os.Stat(socketFile)
+	if err == nil {
+		network = "unix"
+		addr = socketFile
+	} else {
+		network = "tcp"
+		addr = fmt.Sprintf("%s:%d", "127.0.0.1", 6379)
+	}
+	redisClient = redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: "",
+		DB:       1,
+		Network:  network,
+	})
+	ok, err := redisClient.Ping().Result()
+	if err != nil {
+		panic(err)
+	} else {
+		fmt.Printf("%s", ok)
 	}
 }

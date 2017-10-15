@@ -102,7 +102,8 @@ sudo systemctl restart mysql
 `mysql_config --socket`でsocketの場所確認。引数で`/var/run/mysqld/mysqld.sock`を指定してて接続できない罠があった
 
 
-#### redisのインストール
+#### redis起動まで
+```
 wget http://download.redis.io/releases/redis-4.0.2.tar.gz
 tar xzf redis-4.0.2.tar.gz
 cd redis-4.0.2
@@ -124,6 +125,13 @@ sudo mkdir /etc/redis
 sudo chown redis:redis /etc/redis
 mkdir /home/isucon/webapp/go/etc/redis;
 cp -pr redis.conf /home/isucon/webapp/go/etc/redis/.
+
+redis-server.serviceを/etc/systemd/system/に置く
+sudo ln -s /home/isucon/webapp/go/etc/redis/redis.conf /etc/redis/.
+
+sudo systemctl start redis-server
+```
+`/usr/local/bin/redis-cli`で接続できたらOK
 
 #### sysctlの設定変更
 sudo /sbin/sysctl -p

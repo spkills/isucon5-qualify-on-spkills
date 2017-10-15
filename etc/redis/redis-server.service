@@ -4,15 +4,13 @@ After=network.target
 
 [Service]
 Type=forking
-PIDFile=/var/run/redis/redis.pid
+PIDFile=/var/run/redis/redis_6379.pid
 ExecStartPre=/bin/mkdir -p /var/run/redis
 ExecStartPre=/bin/chown redis:redis /var/run/redis
 
-ExecStart=/sbin/start-stop-daemon --start --chuid redis:redis --pidfile /var/run/redis/redis.pid --umask 007 --exec /usr/local/bin/redis-server -- /etc/redis/redis.conf
+ExecStart=/sbin/start-stop-daemon --start --chuid redis:redis --pidfile /var/run/redis/redis_6379.pid --umask 007 --exec /usr/local/bin/redis-server -- /etc/redis/redis.conf
 ExecReload=/bin/kill -USR2 $MAINPID
 
 [Install]
 WantedBy=multi-user.target
-
-/etc/systemd/system/isuxi.go.service
 

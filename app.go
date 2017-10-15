@@ -15,15 +15,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis"
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"github.com/ugorji/go/codec"
 )
 
 var (
-	db    *sql.DB
-	store *sessions.CookieStore
+	db          *sql.DB
+	store       *sessions.CookieStore
+	redisClient *redis.Client
 )
 
 type User struct {
@@ -140,13 +143,37 @@ func authenticated(w http.ResponseWriter, r *http.Request) *User {
 }
 
 func getUser(w http.ResponseWriter, userID int) *User {
-	row := db.QueryRow(`SELECT * FROM users WHERE id = ?`, userID)
+
+	userKey := fmt.Sprintf("user:%d", userID)
+	val, err := redisClient.Get(userKey).Result()
 	user := User{}
-	err := row.Scan(&user.ID, &user.AccountName, &user.NickName, &user.Email, new(string))
-	if err == sql.ErrNoRows {
-		checkErr(ErrContentNotFound)
+	mh := codec.MsgpackHandle{RawToString: true}
+	if err == redis.Nil {
+		//fmt.Printf("not found redis data.Error: %s, %s\n", userKey, err.Error())
+		row := db.QueryRow(`SELECT * FROM users WHERE id = ?`, userID)
+		err := row.Scan(&user.ID, &user.AccountName, &user.NickName, &user.Email, new(string))
+		if err == sql.ErrNoRows {
+			checkErr(ErrContentNotFound)
+		}
+		checkErr(err)
+
+		var encoded []byte
+		encoder := codec.NewEncoderBytes(&encoded, &mh)
+		if err := encoder.Encode(user); err != nil {
+			panic(err)
+		}
+		err = redisClient.Set(userKey, string(encoded), 10*time.Second).Err()
+		if err != nil {
+			panic(err)
+		}
+
+	} else {
+		decoder := codec.NewDecoderBytes([]byte(val), &mh)
+		if err := decoder.Decode(&user); err != nil {
+			//fmt.Printf("redis data. decode error: %s\n", err.Error())
+		}
+		//fmt.Printf("decoded: %+v\n", user)
 	}
-	checkErr(err)
 	return &user
 }
 
@@ -741,6 +768,30 @@ func GetInitialize(w http.ResponseWriter, r *http.Request) {
 	db.Exec("DELETE FROM footprints WHERE id > 500000")
 	db.Exec("DELETE FROM entries WHERE id > 500000")
 	db.Exec("DELETE FROM comments WHERE id > 1500000")
+
+	rows, err := db.Query(`
+SELECT u.id, u.account_name, u.nick_name, u.email FROM users u
+`)
+	if err != sql.ErrNoRows {
+		checkErr(err)
+	}
+	// シリアライズしてredisにset
+	mh := codec.MsgpackHandle{RawToString: true}
+	for rows.Next() {
+		u := User{}
+		checkErr(rows.Scan(&u.ID, &u.AccountName, &u.NickName, &u.Email))
+		var encoded []byte
+		encoder := codec.NewEncoderBytes(&encoded, &mh)
+		if err := encoder.Encode(u); err != nil {
+			panic(err)
+		}
+		//log.Printf("key: %s, %s\n", fmt.Sprintf("user:%d", u.ID), string(encoded))
+		err = redisClient.Set(fmt.Sprintf("user:%d", u.ID), string(encoded), 120*time.Second).Err()
+		if err != nil {
+			panic(err)
+		}
+	}
+	rows.Close()
 }
 
 func main() {
@@ -795,6 +846,8 @@ func main() {
 
 	store = sessions.NewCookieStore([]byte(ssecret))
 
+	initRedis()
+
 	r := mux.NewRouter()
 
 	l := r.Path("/login").Subrouter()
@@ -837,5 +890,31 @@ func main() {
 func checkErr(err error) {
 	if err != nil {
 		panic(err)
+	}
+}
+
+func initRedis() {
+	var addr string
+	var network string
+	socketFile := "/tmp/redis.sock"
+	_, err := os.Stat(socketFile)
+	if err == nil {
+		network = "unix"
+		addr = socketFile
+	} else {
+		network = "tcp"
+		addr = fmt.Sprintf("%s:%d", "127.0.0.1", 6379)
+	}
+	redisClient = redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: "",
+		DB:       1,
+		Network:  network,
+	})
+	ok, err := redisClient.Ping().Result()
+	if err != nil {
+		panic(err)
+	} else {
+		fmt.Printf("%s", ok)
 	}
 }

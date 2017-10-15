@@ -209,3 +209,11 @@ sudo /sbin/sysctl -p
 {"success"=>8523, "redirect"=>2333, "failure"=>1, "error"=>0, "exception"=>0}
 ```
 
+#### userをinitでredisにいれて、redisから引く
+なんか、redisから取れてないケースがある。。
+1件取得するだけなら、redisもmysqlもそこまで変わらないのかも。
+```
+8920.1
+{"success"=>8682, "redirect"=>2381, "failure"=>1, "error"=>0, "exception"=>0}
+```
+
